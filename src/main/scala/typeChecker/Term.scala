@@ -16,7 +16,7 @@ case class Lambda(arg: String, typ: Option[Type], body: Term) extends Term
 case class App(func: Term, arg: Term) extends Term
 case class Let(varname: String, right: Term, afterIn : Term) extends Term
 case class IfThenElse (con: Term, tBranch: Term, fBranch : Term)  extends Term
-case class Over(name: String, typeA: ForallType , afterIn: Term) extends Term
+case class Over(name: String, typeA: Type , afterIn: Term) extends Term
 case class Inst(name: String, typeA: Type, rhs: Term, afterIn: Term) extends Term
 
 

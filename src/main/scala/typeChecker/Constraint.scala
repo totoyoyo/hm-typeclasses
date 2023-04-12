@@ -1,3 +1,8 @@
 package typeChecker
 
-case class Constraint(left : Type, right: Type)
+
+sealed trait Constraint
+
+case class EqualityConstraint(left : Type, right: Type) extends Constraint
+
+case class InstanceConstraint(name: String, t: Type) extends Constraint
