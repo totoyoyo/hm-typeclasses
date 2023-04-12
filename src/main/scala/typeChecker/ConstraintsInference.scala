@@ -15,13 +15,23 @@ object ConstraintsInference {
     term match {
       case IntLiteral(value) => return (IntType, Set())
       case BoolLiteral(value) => return (BoolType, Set())
-      case VarTerm(varName) => (context.getSpecial(varName),Set())
+      case vt@VarTerm(varName) =>
+//        vt.varName = "haha"
+        (context.getSpecial(varName),Set())
       case Succ(arg) =>
         val (type1,constraints)  = infer(arg,context)
         return (IntType, constraints + Constraint(type1, IntType))
+      case IntEquals(a1, a2) =>
+        val (type1,constraints1)  = infer(a1,context)
+        val (type2,constraints2)  = infer(a2,context)
+        return (BoolType, constraints1 ++ constraints2 + Constraint(type1, IntType) + Constraint(type2, IntType))
+      case BoolEquals(a1, a2) =>
+        val (type1,constraints1)  = infer(a1,context)
+        val (type2,constraints2)  = infer(a2,context)
+        return (BoolType, constraints1 ++ constraints2 + Constraint(type1, BoolType) + Constraint(type2, BoolType))
       case Lambda(arg, typ, body) =>
         val t1: Type = typ.getOrElse(TypeVar(genTypeVar()))
-        val newContext: Context = context.addSpecial(arg,t1)
+        val newContext: Context = context.addNormal(arg,t1)
         val (t2,constraints) = infer(body, newContext)
         return (FuncType(t1,t2), constraints)
       case App(func, arg) =>
@@ -34,7 +44,7 @@ object ConstraintsInference {
         val (s1,c1) = infer(right,context)
         val principal = TypeSubstitution.applySeqTypeSub(unify(c1), s1)
         val generalizedT = Type.generalizeLet(principal, context)
-        val newContext = context.addSpecial(varname,generalizedT)
+        val newContext = context.addNormal(varname,generalizedT)
         return infer(afterIn,newContext)
       case IfThenElse(con, tBranch, fBranch) =>
         val (t1,c1) = infer(con,context)
@@ -42,6 +52,20 @@ object ConstraintsInference {
         val (t3,c3) = infer(fBranch,context)
         val cPrime = c1.union(c2).union(c3) + Constraint(t1, BoolType) + Constraint(t2, t3)
         return (t2, cPrime)
+      case Over(name, typeA, afterIn) =>
+        val newContext = context.addOverload(name, typeA) // this is inserted into the same maps as others
+        infer(afterIn,newContext)
+      case Inst(name,typeA, rhs, afterIn) =>
+        // Look up the overload declaration type, add a constraint that it can be this
+        val lookedupType = context.getOverload(name)
+        val c0 = Constraint(lookedupType, typeA)
+
+        // infer type of rhs
+        val (t1,c1) = infer(rhs,context)
+        val uniout = unify(c1 + c0);
+
+        val newContext = context.addInstance(name,typeA,rhs)
+        infer(afterIn,newContext)
       case unit => return (UnitType, Set())
     }
   }
@@ -70,7 +94,7 @@ object ConstraintsInference {
           val newConstraints: Set[Constraint] = cPrime + Constraint(s1,t1) + Constraint(s2,t2)
           unify(newConstraints)
         case _ =>
-          ???
+          throw CannotUnify(s"Cannot unify ${s.toString} and ${t.toString}")
       }
     }
   }
