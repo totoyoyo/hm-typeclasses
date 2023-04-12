@@ -11,18 +11,18 @@ object ConstraintsInference {
     return "X" + typeVarCounter.toString
   }
 
-  private def infer(term: Term, context: Map[String, Type]): (Type, Set[Constraint]) = {
+  private def infer(term: Term, context: Context): (Type, Set[Constraint]) = {
     term match {
       case IntLiteral(value) => return (IntType, Set())
       case BoolLiteral(value) => return (BoolType, Set())
-      case VarTerm(varName) => (context.getOrElse(varName, ???),Set())
+      case VarTerm(varName) => (context.getSpecial(varName),Set())
       case Succ(arg) =>
         val (type1,constraints)  = infer(arg,context)
         return (IntType, constraints + Constraint(type1, IntType))
       case Lambda(arg, typ, body) =>
         val t1: Type = typ.getOrElse(TypeVar(genTypeVar()))
-        val newContext = context + (arg -> t1)
-        val (t2,constraints) = infer(body,newContext)
+        val newContext: Context = context.addSpecial(arg,t1)
+        val (t2,constraints) = infer(body, newContext)
         return (FuncType(t1,t2), constraints)
       case App(func, arg) =>
         val (t1,c1) = infer(func,context)
@@ -34,7 +34,7 @@ object ConstraintsInference {
         val (s1,c1) = infer(right,context)
         val principal = TypeSubstitution.applySeqTypeSub(unify(c1), s1)
         val generalizedT = Type.generalizeLet(principal, context)
-        val newContext = context + (varname -> generalizedT)
+        val newContext = context.addSpecial(varname,generalizedT)
         return infer(afterIn,newContext)
       case IfThenElse(con, tBranch, fBranch) =>
         val (t1,c1) = infer(con,context)
@@ -47,7 +47,7 @@ object ConstraintsInference {
   }
 
   def infer(termOuter: Term) : (Type, Set[Constraint]) = {
-    infer(termOuter, Map.empty)
+    infer(termOuter, new Context(Map.empty))
   }
 
   def unify(c: Set[Constraint]) : Seq[TypeSubstitution] = {
