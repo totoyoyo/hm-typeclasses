@@ -30,7 +30,12 @@ object ConstraintsInference {
         val newX = TypeVar(genTypeVar())
         val newConstraints = c1.union(c2) + Constraint(t1, FuncType(t2,newX))
         return (newX, newConstraints)
-      case Let(varname, right, afterIn) => ???
+      case Let(varname, right, afterIn) =>
+        val (s1,c1) = infer(right,context)
+        val principal = TypeSubstitution.applySeqTypeSub(unify(c1), s1)
+        val generalizedT = Type.generalizeLet(principal, context)
+        val newContext = context + (varname -> generalizedT)
+        return infer(afterIn,newContext)
       case IfThenElse(con, tBranch, fBranch) =>
         val (t1,c1) = infer(con,context)
         val (t2,c2) = infer(tBranch,context)
@@ -81,6 +86,7 @@ object ConstraintsInference {
         case ForallType(typeVar, body) => ???
       }
   }
+
 
 
 
