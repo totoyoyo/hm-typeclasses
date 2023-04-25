@@ -10,7 +10,7 @@ class Context(map: Map[String,Type], val overloadMap: Map[String,Type] = Map(), 
         case fa@ForallType(_, _) => instantiateForall(fa)
         case _ => t
       }
-      case None => throw NoVarException(s"Cannot instantiate without an over $s.")
+      case None => throw NoVarException(s"Cannot instantiate function $s without an over declaration.")
     }
   }
 
