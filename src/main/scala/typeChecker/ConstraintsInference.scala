@@ -108,20 +108,38 @@ object ConstraintsInference {
             case _ =>
               throw CannotUnify(s"Cannot unify ${s.toString} and ${t.toString}")
           }
-        case InstanceConstraint(name, t) =>
-          context.instanceMap.get(name) match {
+        case InstanceConstraint(name, t, c0, bool) =>
+          // Lookup from instance map
+          c0.instanceMap.get(name) match {
+            // If there is instance, check if instance has a matching type
             case Some(typeToTerm) => typeToTerm.get(t) match {
+              // If it does, remove the constraint and continue
               case Some(term) => unify(cPrime, context)
+              // If not, first check if all remaining constraints are instance constraints
               case None =>
                 val allInstanceConstraints = cPrime.forall {
                   p => p match {
-                    case EqualityConstraint(left, right) => false
-                    case InstanceConstraint(name, t) => true
+                    case InstanceConstraint(_, _, _, _)  => true
+                    case _ => false
                   }
                 }
-                if (allInstanceConstraints) Seq() else (unify(cPrime + head, context))
+                // If not all constraints are instance constraints, more can be inferred, so continue
+                if (!allInstanceConstraints) {
+                  unify(cPrime + head, context)
+                } else {
+                  // If all remaining constaints are instance contraints, go through all at least once
+                  val newHead = InstanceConstraint(name, t, c0, checked = true)
+                  val allInstanceChecked = cPrime.forall {
+                    p => p match {
+                      case InstanceConstraint(_, _, _, checked) if checked  => true
+                      case _ => false
+                    }
+                  }
+                  // All instance checked, its over, else keep unifying
+                  if (allInstanceChecked) Seq() else (unify(cPrime + newHead, context))
+                }
             }
-            case None => throw CannotUnify(s"Cannot unify. Overloaded function `${name}` does not exist")
+            case None => throw CannotUnify(s"Cannot unify. Instance of overloaded function `${name}` does not exist")
           }
 
       }
