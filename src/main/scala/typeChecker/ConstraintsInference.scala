@@ -24,7 +24,7 @@ object ConstraintsInference {
           case None => (context.getSpecial(varName),Seq())
           case _ =>
             val typeofInst = context.getOverload(varName)
-            (typeofInst, Seq(InstanceConstraint(varName, typeofInst, context, checked = false)))
+            (typeofInst, Seq(InstanceConstraint(varName, typeofInst, context, 0)))
         }
       case Succ(arg) =>
         val (type1,constraints)  = infer(arg,context)
@@ -51,8 +51,7 @@ object ConstraintsInference {
         val newConstraints = c1 ++ c2 :+ EqualityConstraint(t1, FuncType(t2,newX))
         return (newX, newConstraints)
       case Let(varname, right, afterIn) =>
-        val (s1,c1) = infer(right,context)
-        val principal = TypeSubstitution.applySeqTypeSub(unify(c1), s1)
+        val principal = typeCheck(right, context)
         val generalizedT = Type.generalizeLet(principal, context)
         val newContext = context.addNormal(varname,generalizedT)
         return infer(afterIn,newContext)
@@ -72,8 +71,7 @@ object ConstraintsInference {
         unify(Seq(c0))
 
         // infer type of rhs
-        val (t1,c1) = infer(rhs,context)
-        val principal = TypeSubstitution.applySeqTypeSub(unify(c1), t1)
+        val principal = typeCheck(rhs, context)
         unify(Seq(EqualityConstraint(typeA, principal)))
 
         val newContext = context.addInstance(name,typeA,rhs)
@@ -89,11 +87,15 @@ object ConstraintsInference {
 
   def typeCheck(termOuter: Term, context: Context = new Context(Map.empty), toPrint: Boolean = false) : Type = {
     val (t,c) =  infer(termOuter, context)
+    if (toPrint) {
+      println(s"Input program: ${termOuter.toString}\n")
+      println(s"Output type before unify: ${t.toString}\n")
+      print(s"Constraints list: ")
+      pprint(c)
+    }
     val outSubs: Seq[TypeSubstitution] = ConstraintsInference.unify(c)
     val outType = TypeSubstitution.applySeqTypeSub(outSubs,t)
     if (toPrint) {
-      println(s"Input : ${termOuter.toString}\n")
-      println(s"Output type before unify : ${t.toString}\n")
       print(s"Substitutions list: ")
       pprint(outSubs)
       println()
@@ -127,7 +129,7 @@ object ConstraintsInference {
             case _ =>
               throw CannotUnify(s"Cannot unify ${s.toString} and ${t.toString}")
           }
-        case InstanceConstraint(name, t, c0, bool) =>
+        case InstanceConstraint(name, t, c0, checkedAmount) =>
           // Lookup from instance map
           c0.instanceMap.get(name) match {
             // If there is instance, check if instance has a matching type
@@ -137,8 +139,9 @@ object ConstraintsInference {
               // If not, first check if all remaining constraints are instance constraints
               case None =>
                 // If there is only one instance, add constraint that t must be that instance's type
-                if (typeToTerm.size == 1) {
-                  val (typeInstance, _) = typeToTerm.head
+                val possibleInstances = getPossibleInstances(typeToTerm, t)
+                if (possibleInstances.size == 1) {
+                  val (typeInstance, _) = possibleInstances.head
                   val newConstraints: Seq[Constraint] = cPrime :+ EqualityConstraint(t, typeInstance) :+ head
                   return unify(newConstraints)
                 }
@@ -153,10 +156,10 @@ object ConstraintsInference {
                   unify(cPrime :+ head)
                 } else {
                   // If all remaining constaints are instance contraints, go through all at least once
-                  val newHead = InstanceConstraint(name, t, c0, checked = true)
+                  val newHead = InstanceConstraint(name, t, c0, checkedAmount + 1)
                   val allInstanceChecked = cPrime.forall {
                     p => p match {
-                      case InstanceConstraint(_, _, _, checked) if checked  => true
+                      case InstanceConstraint(_, _, _, checkedAmount) if checkedAmount > 1  => true
                       case _ => false
                     }
                   }
@@ -176,6 +179,20 @@ object ConstraintsInference {
 
 
     }
+  }
+
+  def getPossibleInstances( typeToTerm: Map[Type,Term], t: Type) : Seq[(Type,Term)] = {
+    var out : Seq[(Type,Term)] = Seq()
+    typeToTerm.foreach {
+      case (typ,term) =>
+        try {
+          unify(Seq(EqualityConstraint(typ,t)))
+          out = out :+ (typ,term)
+        } catch {
+          case _ : Throwable =>
+        }
+    }
+    out
   }
 
 

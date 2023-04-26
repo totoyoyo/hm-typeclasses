@@ -152,17 +152,6 @@ class ConstraintsInferenceTest extends AnyFunSuite {
       ))
     }
     ConstraintsInference.typeCheck(exampleTerm, toPrint = true)
-    //    PPrinter.pprint(exampleTerm)
-//    val c = ConstraintsInference.infer(exampleTerm)
-//    println("Tuple of (output type, constraints)")
-//
-//    PPrinter.pprint(c)
-//    val outSubs: Seq[TypeSubstitution] = ConstraintsInference.unify(c._2)
-//    val outType = TypeSubstitution.applySeqTypeSub(outSubs,c._1)
-//    print("Output Type:")
-//    PPrinter.pprint(outType)
-//    print("OutputMaps:")
-//    PPrinter.pprint(outSubs)
   }
 
   test("Eq alone") {
@@ -183,17 +172,66 @@ class ConstraintsInferenceTest extends AnyFunSuite {
         )
       )
       )
-    PPrinter.pprint(exampleTerm)
-    val c = ConstraintsInference.infer(exampleTerm)
-    println("Tuple of (output type, constraints)")
+    ConstraintsInference.typeCheck(exampleTerm, toPrint = true)
+  }
 
-    PPrinter.pprint(c)
-    val outSubs: Seq[TypeSubstitution] = ConstraintsInference.unify(c._2)
-    val outType = TypeSubstitution.applySeqTypeSub(outSubs,c._1)
-    print("Output Type:")
-    PPrinter.pprint(outType)
-    print("OutputMaps:")
-    PPrinter.pprint(outSubs)
+  test("Eq bool one arg") {
+
+    // over eq :: \/a. a -> a -> bool in
+    // inst eq :: Int-> int -> bool = \x.\y. intequals(x,y) in
+    // inst eq :: Bool -> Bool -> bool = \x.\y. boolequals(x,y) in
+    // eq false
+
+    val exampleTerm =
+      Over("eq",ForallType(TypeVar("a"),FuncType(TypeVar("a"), FuncType(TypeVar("a"), BoolType))),
+        Inst("eq", FuncType(IntType, FuncType(IntType, BoolType)),
+          Lambda("x", None, Lambda("y", None, IntEquals(VarTerm("x"),VarTerm("y")))
+          ),
+          Inst("eq", FuncType(BoolType, FuncType(BoolType, BoolType)),
+            Lambda("x", None, Lambda("y", None, BoolEquals(VarTerm("x"),VarTerm("y")))
+            ),
+            App(VarTerm("eq"),BoolLiteral(false))
+          )
+        )
+      )
+    ConstraintsInference.typeCheck(exampleTerm, toPrint = true)
+  }
+
+  test("Eq no arg") {
+
+    // over eq :: \/a. a -> a -> bool in
+    // inst eq :: Int-> int -> bool = \x.\y. intequals(x,y) in
+    // inst eq :: Bool -> Bool -> bool = \x.\y. boolequals(x,y) in
+    // eq false
+
+    val exampleTerm =
+      Over("eq",ForallType(TypeVar("a"),FuncType(TypeVar("a"), FuncType(TypeVar("a"), BoolType))),
+          Inst("eq", FuncType(BoolType, FuncType(BoolType, BoolType)),
+            Lambda("x", None, Lambda("y", None, BoolEquals(VarTerm("x"),VarTerm("y")))
+            ),
+            (VarTerm("eq"))
+          )
+      )
+    ConstraintsInference.typeCheck(exampleTerm, toPrint = true)
+  }
+
+  test("iden no arg") {
+
+    // over iden :: \/a. a -> a in
+    // inst iden :: Int-> int = \x.  x in
+    // inst iden :: Bool -> = \x. x in
+    // iden
+
+    val exampleTerm =
+      Over("iden",ForallType(TypeVar("a"),FuncType(TypeVar("a"), TypeVar("b"))),
+        Inst("iden", FuncType(BoolType, BoolType),
+          Lambda("x", None,  VarTerm("x")),
+          Inst("iden", FuncType(IntType, IntType),
+            Lambda("x", None,  VarTerm("x")),
+          App(VarTerm("iden"), IntLiteral(2))
+        )
+      ))
+    ConstraintsInference.typeCheck(exampleTerm, toPrint = true)
   }
 
 
