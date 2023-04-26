@@ -139,7 +139,7 @@ class ConstraintsInferenceTest extends AnyFunSuite {
     // eq true true
 
 
-    val exampleTerm =
+    val exampleTerm = {
       Over("eq",ForallType(TypeVar("a"),FuncType(TypeVar("a"), FuncType(TypeVar("a"), BoolType))),
         Inst("eq", FuncType(IntType, FuncType(IntType, BoolType)),
           Lambda("x", None, Lambda("y", None, IntEquals(VarTerm("x"),VarTerm("y")))
@@ -150,17 +150,19 @@ class ConstraintsInferenceTest extends AnyFunSuite {
           App(App(VarTerm("eq"), BoolLiteral(true)),BoolLiteral(true))
         )
       ))
-    PPrinter.pprint(exampleTerm)
-    val c = ConstraintsInference.infer(exampleTerm)
-    println("Tuple of (output type, constraints)")
-
-    PPrinter.pprint(c)
-    val outSubs: Seq[TypeSubstitution] = ConstraintsInference.unify(c._2)
-    val outType = TypeSubstitution.applySeqTypeSub(outSubs,c._1)
-    print("Output Type:")
-    PPrinter.pprint(outType)
-    print("OutputMaps:")
-    PPrinter.pprint(outSubs)
+    }
+    ConstraintsInference.typeCheck(exampleTerm, toPrint = true)
+    //    PPrinter.pprint(exampleTerm)
+//    val c = ConstraintsInference.infer(exampleTerm)
+//    println("Tuple of (output type, constraints)")
+//
+//    PPrinter.pprint(c)
+//    val outSubs: Seq[TypeSubstitution] = ConstraintsInference.unify(c._2)
+//    val outType = TypeSubstitution.applySeqTypeSub(outSubs,c._1)
+//    print("Output Type:")
+//    PPrinter.pprint(outType)
+//    print("OutputMaps:")
+//    PPrinter.pprint(outSubs)
   }
 
   test("Eq alone") {

@@ -87,10 +87,18 @@ object ConstraintsInference {
   }
 
 
-  def typeCheck(termOuter: Term) : Type = {
-    val (t,c) =  infer(termOuter, new Context(Map.empty))
+  def typeCheck(termOuter: Term, context: Context = new Context(Map.empty), toPrint: Boolean = false) : Type = {
+    val (t,c) =  infer(termOuter, context)
     val outSubs: Seq[TypeSubstitution] = ConstraintsInference.unify(c)
     val outType = TypeSubstitution.applySeqTypeSub(outSubs,t)
+    if (toPrint) {
+      println(s"Input : ${termOuter.toString}\n")
+      println(s"Output type before unify : ${t.toString}\n")
+      print(s"Substitutions list: ")
+      pprint(outSubs)
+      println()
+      println(s"Final output type: ${outType.toString}")
+    }
     outType
   }
 

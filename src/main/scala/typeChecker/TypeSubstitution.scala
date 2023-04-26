@@ -4,7 +4,13 @@ class TypeSubstitution(left: TypeVar, right: Type) {
 
   var map: Map[TypeVar, Type] = Map.empty + (left -> right)
 
-  override def toString: String = map.toString()
+  override def toString: String = {
+    var newString = ""
+    map.foreach {
+      case (tv, t) =>  newString = "(" + newString + s"${tv.toString} becomes ${t.toString})"
+    }
+    newString
+  }
 
   def add(left: TypeVar, right: Type): Unit = {
     map = map + (left -> right)
