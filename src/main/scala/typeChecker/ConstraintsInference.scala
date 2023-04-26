@@ -1,5 +1,7 @@
 package typeChecker
 
+import typeChecker.PPrinter.pprint
+
 import scala.collection.immutable.{AbstractSet, SortedSet}
 
 object ConstraintsInference {
@@ -13,29 +15,29 @@ object ConstraintsInference {
 
 
   // Returns the context  of the highest level after Over and Inst
-  private def infer(term: Term, context: Context): (Type, Set[Constraint]) = {
+  private def infer(term: Term, context: Context): (Type, Seq[Constraint]) = {
     term match {
-      case IntLiteral(value) => return (IntType, Set())
-      case BoolLiteral(value) => return (BoolType, Set())
+      case IntLiteral(value) => return (IntType, Seq())
+      case BoolLiteral(value) => return (BoolType, Seq())
       case vt@VarTerm(varName) =>
         context.overloadMap.get(varName) match {
-          case None => (context.getSpecial(varName),Set())
+          case None => (context.getSpecial(varName),Seq())
           case _ =>
             val typeofInst = context.getOverload(varName)
-            (typeofInst, Set(InstanceConstraint(varName, typeofInst, context, checked = false)))
+            (typeofInst, Seq(InstanceConstraint(varName, typeofInst, context, checked = false)))
         }
       case Succ(arg) =>
         val (type1,constraints)  = infer(arg,context)
-        return (IntType, constraints + EqualityConstraint(type1, IntType))
+        return (IntType, constraints :+ EqualityConstraint(type1, IntType))
       case IntEquals(a1, a2) =>
         val (type1,constraints1)  = infer(a1,context)
         val (type2,constraints2)  = infer(a2,context)
-        return (BoolType, constraints1 ++ constraints2 + EqualityConstraint(type1, IntType) +
+        return (BoolType, constraints1 ++ constraints2 :+ EqualityConstraint(type1, IntType) :+
           EqualityConstraint(type2, IntType))
       case BoolEquals(a1, a2) =>
         val (type1,constraints1)  = infer(a1,context)
         val (type2,constraints2)  = infer(a2,context)
-        return (BoolType, constraints1 ++ constraints2 + EqualityConstraint(type1, BoolType) +
+        return (BoolType, constraints1 ++ constraints2 :+ EqualityConstraint(type1, BoolType) :+
           EqualityConstraint(type2, BoolType))
       case Lambda(arg, typ, body) =>
         val t1: Type = typ.getOrElse(TypeVar(genTypeVar()))
@@ -46,7 +48,7 @@ object ConstraintsInference {
         val (t1,c1) = infer(func,context)
         val (t2,c2) = infer(arg,context)
         val newX = TypeVar(genTypeVar())
-        val newConstraints = c1.union(c2) + EqualityConstraint(t1, FuncType(t2,newX))
+        val newConstraints = c1 ++ c2 :+ EqualityConstraint(t1, FuncType(t2,newX))
         return (newX, newConstraints)
       case Let(varname, right, afterIn) =>
         val (s1,c1) = infer(right,context)
@@ -58,7 +60,7 @@ object ConstraintsInference {
         val (t1,c1) = infer(con,context)
         val (t2,c2) = infer(tBranch,context)
         val (t3,c3) = infer(fBranch,context)
-        val cPrime = c1.union(c2).union(c3) + EqualityConstraint(t1, BoolType) + EqualityConstraint(t2, t3)
+        val cPrime = c1 ++ c2 ++ c3 :+ EqualityConstraint(t1, BoolType) :+ EqualityConstraint(t2, t3)
         return (t2, cPrime)
       case Over(name, typeA, afterIn) =>
         val newContext = context.addOverload(name, typeA) // this is inserted into the same maps as others
@@ -67,29 +69,38 @@ object ConstraintsInference {
         // Look up the overload declaration type, add a constraint that it can be this
         val lookedupType = context.getOverload(name)
         val c0 = EqualityConstraint(lookedupType, typeA)
-        unify(Set(c0))
+        unify(Seq(c0))
 
         // infer type of rhs
         val (t1,c1) = infer(rhs,context)
         val principal = TypeSubstitution.applySeqTypeSub(unify(c1), t1)
-        unify(Set(EqualityConstraint(typeA, principal)))
+        unify(Seq(EqualityConstraint(typeA, principal)))
 
         val newContext = context.addInstance(name,typeA,rhs)
         infer(afterIn,newContext)
-      case unit => return (UnitType, Set())
+      case unit => return (UnitType, Seq())
     }
   }
 
-  def infer(termOuter: Term) : (Type, Set[Constraint]) = {
+  def infer(termOuter: Term) : (Type, Seq[Constraint]) = {
     infer(termOuter, new Context(Map.empty))
   }
 
-  def unify(c: Set[Constraint]) : Seq[TypeSubstitution] = {
+
+  def typeCheck(termOuter: Term) : Type = {
+    val (t,c) =  infer(termOuter, new Context(Map.empty))
+    val outSubs: Seq[TypeSubstitution] = ConstraintsInference.unify(c)
+    val outType = TypeSubstitution.applySeqTypeSub(outSubs,t)
+    outType
+  }
+
+
+  def unify(c: Seq[Constraint]) : Seq[TypeSubstitution] = {
     if (c.isEmpty) {
       Seq.empty
     } else {
       val head = c.head
-      val cPrime = c - head
+      val cPrime = c.tail
       head match {
         case EqualityConstraint(left, right) =>
           val s = left
@@ -103,7 +114,7 @@ object ConstraintsInference {
               val newSub = new TypeSubstitution(tv, s)
               Seq(newSub) ++ unify(newSub.substituteOnConstraints(cPrime))
             case (FuncType(s1, s2), FuncType(t1, t2)) =>
-              val newConstraints: Set[Constraint] = cPrime + EqualityConstraint(s1,t1) + EqualityConstraint(s2,t2)
+              val newConstraints: Seq[Constraint] = cPrime :+ EqualityConstraint(s1,t1) :+ EqualityConstraint(s2,t2)
               unify(newConstraints)
             case _ =>
               throw CannotUnify(s"Cannot unify ${s.toString} and ${t.toString}")
@@ -117,6 +128,12 @@ object ConstraintsInference {
               case Some(term) => unify(cPrime)
               // If not, first check if all remaining constraints are instance constraints
               case None =>
+                // If there is only one instance, add constraint that t must be that instance's type
+                if (typeToTerm.size == 1) {
+                  val (typeInstance, _) = typeToTerm.head
+                  val newConstraints: Seq[Constraint] = cPrime :+ EqualityConstraint(t, typeInstance) :+ head
+                  return unify(newConstraints)
+                }
                 val allInstanceConstraints = cPrime.forall {
                   p => p match {
                     case InstanceConstraint(_, _, _, _)  => true
@@ -125,7 +142,7 @@ object ConstraintsInference {
                 }
                 // If not all constraints are instance constraints, more can be inferred, so continue
                 if (!allInstanceConstraints) {
-                  unify(cPrime + head)
+                  unify(cPrime :+ head)
                 } else {
                   // If all remaining constaints are instance contraints, go through all at least once
                   val newHead = InstanceConstraint(name, t, c0, checked = true)
@@ -136,7 +153,11 @@ object ConstraintsInference {
                     }
                   }
                   // All instance checked, its over, else keep unifying
-                  if (allInstanceChecked) Seq() else (unify(cPrime + newHead))
+                  if (allInstanceChecked) {
+                    print("Cannot resolve the following ambiguous instance constraints:")
+                    pprint(c)
+                    throw AmbiguousTypeClass(s"Typeclass constraints are ambiguous.")
+                  } else (unify(cPrime :+ newHead))
                 }
             }
             case None => throw CannotUnify(s"Cannot unify. Instance of overloaded function `${name}` does not exist")

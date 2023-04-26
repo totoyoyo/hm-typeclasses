@@ -22,7 +22,7 @@ class TypeSubstitution(left: TypeVar, right: Type) {
   }
 
 
-  def substituteOnConstraints(cs: Set[Constraint]): Set[Constraint] = {
+  def substituteOnConstraints(cs: Seq[Constraint]): Seq[Constraint] = {
     cs.map {
       case EqualityConstraint(left, right) => EqualityConstraint(substitute(left), substitute(right))
       case InstanceConstraint(name, t, context, checked) => InstanceConstraint(name, substitute(t), context, checked)

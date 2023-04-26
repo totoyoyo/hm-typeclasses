@@ -175,8 +175,11 @@ class ConstraintsInferenceTest extends AnyFunSuite {
         Inst("eq", FuncType(IntType, FuncType(IntType, BoolType)),
           Lambda("x", None, Lambda("y", None, IntEquals(VarTerm("x"),VarTerm("y")))
           ),
-          VarTerm("eq")
+          Inst("eq", FuncType(BoolType, FuncType(BoolType, BoolType)),
+            Lambda("x", None, Lambda("y", None, BoolEquals(VarTerm("x"),VarTerm("y")))
+            ), VarTerm("eq")
         )
+      )
       )
     PPrinter.pprint(exampleTerm)
     val c = ConstraintsInference.infer(exampleTerm)

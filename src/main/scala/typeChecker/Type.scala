@@ -2,13 +2,25 @@ package typeChecker
 
 sealed trait Type
 
-case object IntType extends Type
-case object BoolType extends Type
-case class FuncType(left: Type, right: Type) extends Type
-case object UnitType extends Type
-case class TypeVar(name: String) extends Type
-case class ForallType(typeVar: TypeVar, body: Type) extends Type
-case class DictType(ts:Seq[Type]) extends Type
+case object IntType extends Type {
+  override def toString: String = "Int"
+}
+case object BoolType extends Type {
+  override def toString: String = "Bool"
+}
+case class FuncType(left: Type, right: Type) extends Type {
+  override def toString: String = s"(${left.toString} -> ${right.toString})"
+}
+case object UnitType extends Type {
+  override def toString: String = "Unit"
+}
+case class TypeVar(name: String) extends Type {
+  override def toString: String = name
+}
+case class ForallType(typeVar: TypeVar, body: Type) extends Type {
+  override def toString: String = s"\\/${typeVar.toString}. ${body.toString}"
+}
+//case class DictType(ts:Seq[Type]) extends Type
 
 
 object Type {
@@ -32,7 +44,6 @@ object Type {
       case UnitType => Set()
       case tv @ TypeVar(name) => Set(tv)
       case ForallType(typeVar, body) => collectTypeVars(body) - typeVar
-      case DictType(ts) => ???
     }
   }
 
