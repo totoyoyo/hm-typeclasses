@@ -220,7 +220,7 @@ class ConstraintsInferenceTest extends AnyFunSuite {
     val exampleTerm =
       Over("eq",ForallType(TypeVar("a"),FuncType(TypeVar("a"), FuncType(TypeVar("a"), BoolType))),
         Inst("eq", FuncType(BoolType, FuncType(BoolType, BoolType)),
-          Lambda("x", None, Lambda("y", None, BoolEquals(VarTerm("x"),VarTerm("y"))) // I supply wrong instance def
+          Lambda("x", None, Lambda("y", None, BoolEquals(VarTerm("x"),VarTerm("y")))
           ), Inst("eq", FuncType(IntType, FuncType(IntType, BoolType)),
             Lambda("x", None, Lambda("y", None, IntEquals(VarTerm("x"),VarTerm("y")))
             ),
@@ -244,7 +244,7 @@ class ConstraintsInferenceTest extends AnyFunSuite {
     val exampleTerm =
       Over("eq",ForallType(TypeVar("a"),FuncType(TypeVar("a"), FuncType(TypeVar("b"), BoolType))),
         Inst("eq", FuncType(BoolType, FuncType(BoolType, BoolType)),
-          Lambda("x", None, Lambda("y", None, BoolEquals(VarTerm("x"),VarTerm("y"))) // I supply wrong instance def
+          Lambda("x", None, Lambda("y", None, BoolEquals(VarTerm("x"),VarTerm("y")))
           ), Inst("eq", FuncType(IntType, FuncType(IntType, BoolType)),
             Lambda("x", None, Lambda("y", None, IntEquals(VarTerm("x"),VarTerm("y")))
             ),

@@ -1,8 +1,8 @@
 # Implementing Typeclasses With Unification
 
-Running this probably requires Scala 2.13.10 and SBT, but I've done all my runs on IntelliJ. 
+Running this requires Java, Scala 2.13.10 and SBT, but I've done all my tests on IntelliJ. Let me know if there are any issues running.
 
-##Quick Start
+## Quick Start
 - Clone the project 
 - Open with Intellij and build 
 - Run the test file in src/test/scala/typeChecker/ConstraintsInferenceTest for examples
