@@ -76,20 +76,23 @@ object ConstraintsInference {
 
         val newContext = context.addInstance(name,typeA,rhs)
         infer(afterIn,newContext)
-      case unit => return (UnitType, Seq())
+      case UnitTerm => return (UnitType, Seq())
     }
   }
 
-  def infer(termOuter: Term) : (Type, Seq[Constraint]) = {
-    infer(termOuter, new Context(Map.empty))
-  }
+//  def infer(termOuter: Term) : (Type, Seq[Constraint]) = {
+//    infer(termOuter, new Context(Map.empty))
+//  }
 
 
   def typeCheck(termOuter: Term, context: Context = new Context(Map.empty), toPrint: Boolean = false) : Type = {
+    if (toPrint) {
+      println("-------------------------------------------")
+      println(s"Input program: ${termOuter.toString}")
+    }
     val (t,c) =  infer(termOuter, context)
     if (toPrint) {
-      println(s"Input program: ${termOuter.toString}\n")
-      println(s"Output type before unify: ${t.toString}\n")
+      println(s"Output type before unify: ${t.toString}")
       print(s"Constraints list: ")
       pprint(c)
     }
@@ -98,14 +101,14 @@ object ConstraintsInference {
     if (toPrint) {
       print(s"Substitutions list: ")
       pprint(outSubs)
-      println()
       println(s"Final output type: ${outType.toString}")
+      println("-------------------------------------------")
     }
     outType
   }
 
 
-  def unify(c: Seq[Constraint]) : Seq[TypeSubstitution] = {
+  private def unify(c: Seq[Constraint]) : Seq[TypeSubstitution] = {
     if (c.isEmpty) {
       Seq.empty
     } else {
@@ -167,7 +170,7 @@ object ConstraintsInference {
                   if (allInstanceChecked) {
                     print("Cannot resolve the following ambiguous instance constraints:")
                     pprint(c)
-                    throw AmbiguousTypeClass(s"Typeclass constraints are ambiguous.")
+                    throw AmbiguousTypeClass(s"Instance constraints are ambiguous.")
                   } else (unify(cPrime :+ newHead))
                 }
             }
@@ -181,7 +184,7 @@ object ConstraintsInference {
     }
   }
 
-  def getPossibleInstances( typeToTerm: Map[Type,Term], t: Type) : Seq[(Type,Term)] = {
+  private def getPossibleInstances( typeToTerm: Map[Type,Term], t: Type) : Seq[(Type,Term)] = {
     var out : Seq[(Type,Term)] = Seq()
     typeToTerm.foreach {
       case (typ,term) =>
@@ -196,7 +199,7 @@ object ConstraintsInference {
   }
 
 
-  def occurCheck(t1: TypeVar, t2: Type): Boolean = {
+  private def occurCheck(t1: TypeVar, t2: Type): Boolean = {
       t2 match {
         case IntType => false
         case BoolType => false
@@ -206,16 +209,5 @@ object ConstraintsInference {
         case ForallType(typeVar, body) => ???
       }
   }
-
-
-
-
-  def composeMaps(leftMap: Map[Type,Type], rightMap: Map[Type,Type]): Map[Type,Type] = {
-    Map.empty
-  }
-
-
-
-
 
 }

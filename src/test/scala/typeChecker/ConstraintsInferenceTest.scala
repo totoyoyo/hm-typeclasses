@@ -5,99 +5,51 @@ import org.scalatest.funsuite.AnyFunSuite
 class ConstraintsInferenceTest extends AnyFunSuite {
 
   test("infer0") {
-    // unit
-    val exampleTerm: Term = unit
-    PPrinter.pprint(exampleTerm)
-    val c = ConstraintsInference.infer(exampleTerm)
-    println("Tuple of (output type, constraints)")
-    PPrinter.pprint(c)
-    val outSubs: Seq[TypeSubstitution] = ConstraintsInference.unify(c._2)
-    val outType = TypeSubstitution.applySeqTypeSub(outSubs,c._1)
-    print("OutputType:")
-    PPrinter.pprint(outType)
-    print("OutputMaps:")
-    PPrinter.pprint(outSubs)
+    // ()
+    // Unit
+    val exampleTerm: Term = UnitTerm
+    ConstraintsInference.typeCheck(exampleTerm, toPrint = true)
   }
 
   test("infer1") {
     // \x: X->Y . x 0
+    // (X->Y) -> Y
     val exampleTerm = Lambda("x", Some(FuncType(TypeVar("X"), TypeVar("Y"))), App(VarTerm("x"), IntLiteral(0)))
-    PPrinter.pprint(exampleTerm)
-    val c = ConstraintsInference.infer(exampleTerm)
-    println("Tuple of (output type, constraints)")
-    PPrinter.pprint(c)
-    val outSubs: Seq[TypeSubstitution] = ConstraintsInference.unify(c._2)
-    val outType = TypeSubstitution.applySeqTypeSub(outSubs,c._1)
-    print("OutputType:")
-    PPrinter.pprint(outType)
-    print("OutputMaps:")
-    PPrinter.pprint(outSubs)
+    ConstraintsInference.typeCheck(exampleTerm, toPrint = true)
   }
 
   test("infer2") {
     // \x. x 0
-
     // (INT -> Y) -> Y
     val exampleTerm = Lambda("x", None, App(VarTerm("x"), IntLiteral(0)))
-    PPrinter.pprint(exampleTerm)
-    val c = ConstraintsInference.infer(exampleTerm)
-    println("Tuple of (output type, constraints)")
-    PPrinter.pprint(c)
-    val outSubs: Seq[TypeSubstitution] = ConstraintsInference.unify(c._2)
-    val outType = TypeSubstitution.applySeqTypeSub(outSubs,c._1)
-    print("OutputType:")
-    PPrinter.pprint(outType)
-    print("OutputMaps:")
-    PPrinter.pprint(outSubs)
+    ConstraintsInference.typeCheck(exampleTerm, toPrint = true)
   }
 
   test("infer3") {
     // SHOULD FAIL \x. y 0
     val exampleTerm = Lambda("x", None, App(VarTerm("y"), IntLiteral(0)))
-    PPrinter.pprint(exampleTerm)
-    val c = ConstraintsInference.infer(exampleTerm)
-    println("Tuple of (output type, constraints)")
-    PPrinter.pprint(c)
-    val outSubs: Seq[TypeSubstitution] = ConstraintsInference.unify(c._2)
-    val outType = TypeSubstitution.applySeqTypeSub(outSubs,c._1)
-    print("OutputType:")
-    PPrinter.pprint(outType)
-    print("OutputMaps:")
-    PPrinter.pprint(outSubs)
+    try {
+      ConstraintsInference.typeCheck(exampleTerm, toPrint = true)
+      fail("Should not get here")
+    } catch {
+      case _ : NoVarException =>
+    }
+
   }
 
   test("infer4") {
     // let f = \x.x in f(true)
+    // Bool
     val exampleTerm = Let("f",Lambda("x", None, VarTerm("x")), App(VarTerm("f"),BoolLiteral(true)))
-    PPrinter.pprint(exampleTerm)
-    val c = ConstraintsInference.infer(exampleTerm)
-    println("Tuple of (output type, constraints)")
-    PPrinter.pprint(c)
-    val outSubs: Seq[TypeSubstitution] = ConstraintsInference.unify(c._2)
-    val outType = TypeSubstitution.applySeqTypeSub(outSubs,c._1)
-    print("OutputType:")
-    PPrinter.pprint(outType)
-    print("OutputMaps:")
-    PPrinter.pprint(outSubs)
+    ConstraintsInference.typeCheck(exampleTerm, toPrint = true)
   }
 
   test("infer5") {
     // \f: X->X. \x: X. let g = f in g(x)
-
     //  (X->X) -> X -> X
     val exampleTerm = Lambda("f", Some(FuncType(TypeVar("X"), TypeVar("X"))),
       Lambda("x", Some(TypeVar("X")), Let("g",VarTerm("f"), App(VarTerm("g"),VarTerm("x")))))
-    PPrinter.pprint(exampleTerm)
-    val c = ConstraintsInference.infer(exampleTerm)
-    println("Tuple of (output type, constraints)")
-
-    PPrinter.pprint(c)
-    val outSubs: Seq[TypeSubstitution] = ConstraintsInference.unify(c._2)
-    val outType = TypeSubstitution.applySeqTypeSub(outSubs,c._1)
-    print("Output Type:")
-    PPrinter.pprint(outType)
-    print("OutputMaps:")
-    PPrinter.pprint(outSubs)
+    ConstraintsInference.typeCheck(exampleTerm, toPrint = true)
   }
 
   test("Eq on int") {
@@ -105,8 +57,7 @@ class ConstraintsInferenceTest extends AnyFunSuite {
     // inst eq :: Int-> int -> bool = \x.\y. intequals(x,y) in
     // inst eq :: Bool -> Bool -> bool = \x.\y. boolequals(x,y) in
     // eq 2 5
-
-
+    // Bool
     val exampleTerm =
       Over("eq",ForallType(TypeVar("a"),FuncType(TypeVar("a"), FuncType(TypeVar("a"), BoolType))),
         Inst("eq", FuncType(IntType, FuncType(IntType, BoolType)),
@@ -118,17 +69,8 @@ class ConstraintsInferenceTest extends AnyFunSuite {
             App(App(VarTerm("eq"), IntLiteral(2)),IntLiteral(5))
           )
         ))
-    PPrinter.pprint(exampleTerm)
-    val c = ConstraintsInference.infer(exampleTerm)
-    println("Tuple of (output type, constraints)")
+    ConstraintsInference.typeCheck(exampleTerm, toPrint = true)
 
-    PPrinter.pprint(c)
-    val outSubs: Seq[TypeSubstitution] = ConstraintsInference.unify(c._2)
-    val outType = TypeSubstitution.applySeqTypeSub(outSubs,c._1)
-    print("Output Type:")
-    PPrinter.pprint(outType)
-    print("OutputMaps:")
-    PPrinter.pprint(outSubs)
   }
 
 
@@ -137,8 +79,7 @@ class ConstraintsInferenceTest extends AnyFunSuite {
     // inst eq :: Int-> int -> bool = \x.\y. intequals(x,y) in
     // inst eq :: Bool -> Bool -> bool = \x.\y. boolequals(x,y) in
     // eq true true
-
-
+    // Bool
     val exampleTerm = {
       Over("eq",ForallType(TypeVar("a"),FuncType(TypeVar("a"), FuncType(TypeVar("a"), BoolType))),
         Inst("eq", FuncType(IntType, FuncType(IntType, BoolType)),
@@ -155,7 +96,7 @@ class ConstraintsInferenceTest extends AnyFunSuite {
   }
 
   test("Eq alone") {
-
+    // Should fail, ambiguous instance
     // over eq :: \/a. a -> a -> bool in
     // inst eq :: Int-> int -> bool = \x.\y. intequals(x,y) in
     // inst eq :: Bool -> Bool -> bool = \x.\y. boolequals(x,y) in
@@ -172,15 +113,22 @@ class ConstraintsInferenceTest extends AnyFunSuite {
         )
       )
       )
-    ConstraintsInference.typeCheck(exampleTerm, toPrint = true)
+    try {
+      ConstraintsInference.typeCheck(exampleTerm, toPrint = true)
+      fail("Should not pass")
+    } catch {
+      case _ : AmbiguousTypeClass =>
+    }
+
   }
 
   test("Eq bool one arg") {
-
     // over eq :: \/a. a -> a -> bool in
     // inst eq :: Int-> int -> bool = \x.\y. intequals(x,y) in
     // inst eq :: Bool -> Bool -> bool = \x.\y. boolequals(x,y) in
     // eq false
+
+    // Bool -> Bool
 
     val exampleTerm =
       Over("eq",ForallType(TypeVar("a"),FuncType(TypeVar("a"), FuncType(TypeVar("a"), BoolType))),
@@ -197,12 +145,12 @@ class ConstraintsInferenceTest extends AnyFunSuite {
     ConstraintsInference.typeCheck(exampleTerm, toPrint = true)
   }
 
-  test("Eq no arg") {
-
+  test("Eq only 1 instance") {
     // over eq :: \/a. a -> a -> bool in
-    // inst eq :: Int-> int -> bool = \x.\y. intequals(x,y) in
     // inst eq :: Bool -> Bool -> bool = \x.\y. boolequals(x,y) in
-    // eq false
+    // eq
+
+    // Bool -> Bool -> Bool
 
     val exampleTerm =
       Over("eq",ForallType(TypeVar("a"),FuncType(TypeVar("a"), FuncType(TypeVar("a"), BoolType))),
@@ -215,15 +163,16 @@ class ConstraintsInferenceTest extends AnyFunSuite {
     ConstraintsInference.typeCheck(exampleTerm, toPrint = true)
   }
 
-  test("iden no arg") {
+  test("iden int") {
 
     // over iden :: \/a. a -> a in
     // inst iden :: Int-> int = \x.  x in
-    // inst iden :: Bool -> = \x. x in
-    // iden
+    // inst iden :: Bool -> bool = \x. x in
+    // iden 2
+    // Int
 
     val exampleTerm =
-      Over("iden",ForallType(TypeVar("a"),FuncType(TypeVar("a"), TypeVar("b"))),
+      Over("iden",ForallType(TypeVar("a"),FuncType(TypeVar("a"), TypeVar("a"))),
         Inst("iden", FuncType(BoolType, BoolType),
           Lambda("x", None,  VarTerm("x")),
           Inst("iden", FuncType(IntType, IntType),
@@ -236,7 +185,7 @@ class ConstraintsInferenceTest extends AnyFunSuite {
 
 
 
-  test("Eq on int Bug") {
+  test("Eq on int, incorrect instance def") {
     // over eq :: \/a. a -> a -> bool in
     // inst eq :: Int-> int -> bool = \x.\y. boolequals(x,y) in  HERE IS THE ERROR
     // eq 2 5
@@ -250,17 +199,141 @@ class ConstraintsInferenceTest extends AnyFunSuite {
           App(App(VarTerm("eq"), IntLiteral(2)),IntLiteral(4))
         )
       )
-    PPrinter.pprint(exampleTerm)
-    val c = ConstraintsInference.infer(exampleTerm)
-    println("Tuple of (output type, constraints)")
 
-    PPrinter.pprint(c)
-    val outSubs: Seq[TypeSubstitution] = ConstraintsInference.unify(c._2)
-    val outType = TypeSubstitution.applySeqTypeSub(outSubs,c._1)
-    print("Output Type:")
-    PPrinter.pprint(outType)
-    print("OutputMaps:")
-    PPrinter.pprint(outSubs)
+    try {
+      ConstraintsInference.typeCheck(exampleTerm, toPrint = true)
+      fail("Should not pass")
+    } catch {
+      case _: CannotUnify =>
+    }
+  }
+
+
+
+  test("instance used inside a let RHS") {
+    // over eq :: \/a. a -> a -> bool in
+    // inst eq :: Int-> int -> bool = \x.\y. intequals(x,y) in
+    // inst eq :: Bool -> Bool -> bool = \x.\y. boolequals(x,y) in
+    // let eqq = eq 2
+    // eqq
+    // Int -> Bool
+    val exampleTerm =
+      Over("eq",ForallType(TypeVar("a"),FuncType(TypeVar("a"), FuncType(TypeVar("a"), BoolType))),
+        Inst("eq", FuncType(BoolType, FuncType(BoolType, BoolType)),
+          Lambda("x", None, Lambda("y", None, BoolEquals(VarTerm("x"),VarTerm("y"))) // I supply wrong instance def
+          ), Inst("eq", FuncType(IntType, FuncType(IntType, BoolType)),
+            Lambda("x", None, Lambda("y", None, IntEquals(VarTerm("x"),VarTerm("y")))
+            ),
+          Let("eqq" , App(VarTerm("eq"), IntLiteral(2)) ,
+            VarTerm("eqq")
+          )
+        )
+      ))
+    ConstraintsInference.typeCheck(exampleTerm, toPrint = true)
+  }
+
+
+  test("Different instances of eq in different lets") {
+    // over eq :: \/a. a -> a -> bool in
+    // inst eq :: Int-> int -> bool = \x.\y. intequals(x,y) in
+    // inst eq :: Bool -> Bool -> bool = \x.\y. boolequals(x,y) in
+    // let eq1Int = eq 2
+    // let eq1Bool = eq True
+    // eq1Bool
+    // Bool -> Bool
+    val exampleTerm =
+      Over("eq",ForallType(TypeVar("a"),FuncType(TypeVar("a"), FuncType(TypeVar("b"), BoolType))),
+        Inst("eq", FuncType(BoolType, FuncType(BoolType, BoolType)),
+          Lambda("x", None, Lambda("y", None, BoolEquals(VarTerm("x"),VarTerm("y"))) // I supply wrong instance def
+          ), Inst("eq", FuncType(IntType, FuncType(IntType, BoolType)),
+            Lambda("x", None, Lambda("y", None, IntEquals(VarTerm("x"),VarTerm("y")))
+            ),
+            Let("eq1Int" , App(VarTerm("eq"), IntLiteral(2)) ,
+              Let("eq1Bool", App(VarTerm("eq"), BoolLiteral(true)),
+                VarTerm("eq1Bool")
+              )
+            )
+          )
+        ))
+    ConstraintsInference.typeCheck(exampleTerm, toPrint = true)
+  }
+
+  test("coerce example") {
+//    over coerce:\/A. \/B. (A -> B) in
+//    inst coerce:(Bool -> Int) = (lambda x.if (x)
+//            then (1)
+//            else (0)) in
+//    inst coerce:(Int -> Bool) = (lambda x.x (==_int) 1) in
+//    (coerce false)
+    //  Int
+    val exampleTerm =
+      Over("coerce",ForallType(TypeVar("A"), ForallType(TypeVar("B"), FuncType(TypeVar("A"), TypeVar("B")))),
+        Inst("coerce", FuncType(BoolType, IntType),
+          Lambda("x", None, IfThenElse(VarTerm("x"), IntLiteral(1), IntLiteral(0))),
+          Inst("coerce", FuncType(IntType, BoolType),
+            Lambda("x", None, IntEquals(VarTerm("x"), IntLiteral(1))),
+            App(VarTerm("coerce"),BoolLiteral(false))
+          )
+        ))
+    ConstraintsInference.typeCheck(exampleTerm, toPrint = true)
+  }
+
+  test("coerce use inside a lambda") {
+    // over coerce:\/A. \/B. (A -> B) in
+    //inst coerce:(Bool -> Int) = (lambda x.if (x)
+    //        then (1)
+    //        else (0)) in
+    //inst coerce:(Int -> Bool) = (lambda x.x (==_int) 1) in
+    //((lambda x.(coerce x)) 1)
+    // Bool
+
+    val exampleTerm =
+      Over("coerce",ForallType(TypeVar("A"), ForallType(TypeVar("B"), FuncType(TypeVar("A"), TypeVar("B")))),
+        Inst("coerce", FuncType(BoolType, IntType),
+          Lambda("x", None, IfThenElse(VarTerm("x"), IntLiteral(1), IntLiteral(0))),
+          Inst("coerce", FuncType(IntType, BoolType),
+            Lambda("x", None, IntEquals(VarTerm("x"), IntLiteral(1))),
+            App(Lambda("x", None, App(VarTerm("coerce"),VarTerm("x"))), IntLiteral(1))
+          )
+        ))
+    ConstraintsInference.typeCheck(exampleTerm, toPrint = true)
+  }
+
+  test("coerce instance nested inside a lambda") {
+    // over coerce:\/A. \/B. (A -> B) in
+    // inst coerce:(Bool -> Int) = (lambda x.if (x)
+    //    then (1)
+    //   else (0)) in
+    // ((lambda x. inst coerce:(Int -> Bool) = (lambda x.x (==_int) 1) in
+    // (coerce x)) 1)
+    // Bool
+
+    val exampleTerm =
+      Over("coerce",ForallType(TypeVar("A"), ForallType(TypeVar("B"), FuncType(TypeVar("A"), TypeVar("B")))),
+        Inst("coerce", FuncType(BoolType, IntType),
+          Lambda("x", None, IfThenElse(VarTerm("x"), IntLiteral(1), IntLiteral(0))),
+            App(Lambda("x", None,
+              Inst("coerce", FuncType(IntType, BoolType),
+                Lambda("x", None, IntEquals(VarTerm("x"), IntLiteral(1))),
+              App(VarTerm("coerce"),VarTerm("x")))), IntLiteral(1))
+          )
+        )
+    ConstraintsInference.typeCheck(exampleTerm, toPrint = true)
+  }
+
+  test("coerce def in let") {
+    // Let coer = over coerce:\/A. \/B. (A -> B) in
+    //    inst coerce:(Int -> Bool) = (lambda x.x (==_int) 1) in
+    //     coerce in
+    // coer
+    // Int -> Bool
+
+    val exampleTerm = {
+      Let("coer",Over("coerce",ForallType(TypeVar("A"), ForallType(TypeVar("B"),
+        FuncType(TypeVar("A"), TypeVar("B")))), Inst("coerce", FuncType(IntType, BoolType),
+            Lambda("x", None, IntEquals(VarTerm("x"), IntLiteral(1))), VarTerm("coerce"))), VarTerm("coer"))
+    }
+    ConstraintsInference.typeCheck(exampleTerm, toPrint = true)
   }
 
 

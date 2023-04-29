@@ -20,7 +20,6 @@ case class TypeVar(name: String) extends Type {
 case class ForallType(typeVar: TypeVar, body: Type) extends Type {
   override def toString: String = s"\\/${typeVar.toString}. ${body.toString}"
 }
-//case class DictType(ts:Seq[Type]) extends Type
 
 
 object Type {

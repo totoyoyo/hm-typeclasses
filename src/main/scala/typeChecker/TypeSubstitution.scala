@@ -23,7 +23,7 @@ class TypeSubstitution(left: TypeVar, right: Type) {
       case FuncType(left, right) => FuncType(substitute(left), substitute(right))
       case UnitType => UnitType
       case tv@TypeVar(name) => map.getOrElse(tv, t)
-      case ForallType(typeVar, body) => ???
+      case ForallType(typeVar, body) => ForallType(typeVar, substitute(body))
     }
   }
 
